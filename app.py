@@ -156,7 +156,6 @@ def create_public_hostname(subdomain: str, port: int) -> tuple[bool, str]:
     return True, f"https://{hostname}"
 
 
-
 @app.route('/')
 def index():
     containers = client.containers.list(all=True)
@@ -289,8 +288,7 @@ def compose_editor(project_name):
 
     if request.method == 'POST':
         compose_content = None
-        
-    
+
         if 'compose_content' in request.form:
             compose_content = request.form['compose_content']
 
@@ -312,7 +310,7 @@ def compose_editor(project_name):
             compose_dict = yaml.safe_load(compose_content)
             services = compose_dict.get("services", {})
 
-            nginx_service = services.get("server") or services.get("nginx")
+            nginx_service = services.get("server") | services.get("nginx")
             host_port = None
 
             if nginx_service:
