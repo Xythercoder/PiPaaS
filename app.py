@@ -177,6 +177,7 @@ def upload_app():
     return render_template('uploadpage.html')
 
 
+
 @app.route('/compose_editor/<project_name>', methods=['GET', 'POST'])
 def compose_editor(project_name):
     temp_project_dir = os.path.join(PROJECTS_DIR, project_name)
@@ -190,7 +191,7 @@ def compose_editor(project_name):
                 compose_content = file.read()
         else:
             compose_path = None
-            compose_content = ''
+            compose_content = None  # <<< important change
 
         return render_template('compose_editor.html',
                                compose_found=compose_found,
@@ -199,7 +200,20 @@ def compose_editor(project_name):
                                project_name=project_name)
 
     if request.method == 'POST':
-        compose_content = request.form['compose_content']
+        compose_content = None
+
+    
+        if 'compose_content' in request.form:
+            compose_content = request.form['compose_content']
+
+        elif 'new_compose_file' in request.files:
+            file = request.files['new_compose_file']
+            if file and file.filename:
+                compose_content = file.read().decode('utf-8')  # Read & decode bytes
+
+        if not compose_content:
+            flash('No Compose content provided. Please fill or upload.', 'danger')
+            return redirect(request.url)
 
         with open(compose_file_path, 'w') as file:
             file.write(compose_content)
@@ -207,14 +221,17 @@ def compose_editor(project_name):
         flash('Docker Compose file saved successfully!', 'success')
 
         try:
-            subprocess.run(['docker-compose', '-f', compose_file_path,
-                           'up', '-d'], check=True, cwd=temp_project_dir)
-
+            subprocess.run(
+                ['docker-compose', '-f', compose_file_path, 'up', '-d'],
+                check=True,
+                cwd=temp_project_dir
+            )
             flash('App deployed successfully!', 'success')
-
             return redirect(url_for('launch_app_config', project_name=project_name))
+
         except subprocess.CalledProcessError as e:
             flash(f'Error during deployment: {e}', 'danger')
+
 
         return render_template('compose_editor.html',
                                compose_found=True,
