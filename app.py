@@ -191,7 +191,7 @@ def compose_editor(project_name):
                 compose_content = file.read()
         else:
             compose_path = None
-            compose_content = None  # <<< important change
+            compose_content = None 
 
         return render_template('compose_editor.html',
                                compose_found=compose_found,
@@ -209,7 +209,7 @@ def compose_editor(project_name):
         elif 'new_compose_file' in request.files:
             file = request.files['new_compose_file']
             if file and file.filename:
-                compose_content = file.read().decode('utf-8')  # Read & decode bytes
+                compose_content = file.read().decode('utf-8')
 
         if not compose_content:
             flash('No Compose content provided. Please fill or upload.', 'danger')
@@ -238,6 +238,7 @@ def compose_editor(project_name):
                                compose_path=compose_file_path,
                                compose_content=compose_content,
                                project_name=project_name)
+
 
 
 @app.route('/launch_app_config/<project_name>', methods=['GET', 'POST'])
