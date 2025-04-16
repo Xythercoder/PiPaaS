@@ -23,6 +23,7 @@ CF_DOMAIN = os.getenv('CF_DOMAIN')
 CF_IP = os.getenv('CF_IP')
 
 # CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4"
+TUNNEL_HOST = f"{CF_TUNNEL_ID}.cfargotunnel.com"
 
 
 PROJECTS_DIR = os.path.join(os.getcwd(), 'user_projects')
@@ -77,7 +78,6 @@ def parse_docker_compose(compose_content):
 
 
 def get_container_details(container_name):
-
     container_info = {}
     container = client.containers.get(container_name)
     container_info['name'] = container.name
@@ -87,28 +87,73 @@ def get_container_details(container_name):
 
 
 def create_cloudflare_public_hostname(subdomain, port):
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/tunnels/{CF_TUNNEL_ID}/configurations"
+    try:
+        full_hostname = f"{subdomain}.{CF_DOMAIN}"
+        headers = {
+            "Authorization": f"Bearer {CF_API_TOKEN}",
+            "Content-Type": "application/json"
+        }
 
-    headers = {
-        "Authorization": f"Bearer {CF_API_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    new_hostname = f"{subdomain}.{CF_DOMAIN}"
-    config = {
-        "ingress": [
-            {
-                "hostname": new_hostname,
-                "service": f"{CF_IP}:{port}"
-            },
-            {
-                "service": "http_status:404"
+        # Step 1: Update Tunnel Ingress Config
+        tunnel_url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/cfd_tunnel/{CF_TUNNEL_ID}/configurations"
+        tunnel_payload = {
+            "config": {
+                "ingress": [
+                    {
+                        "hostname": full_hostname,
+                        "service": f"http://{CF_IP}:{port}",
+                        "originRequest": {}
+                    },
+                    {
+                        "service": "http_status:404"
+                    }
+                ]
             }
-        ]
-    }
+        }
 
-    response = requests.put(url, headers=headers, json=config)
-    return response.ok, response.json()
+        tunnel_resp = requests.put(
+            tunnel_url, headers=headers, json=tunnel_payload)
+        if not tunnel_resp.ok:
+            return False, f"Ingress config failed: {tunnel_resp.json()}"
+
+        dns_list_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records?type=CNAME&name={full_hostname}"
+        dns_list_resp = requests.get(dns_list_url, headers=headers)
+        if not dns_list_resp.ok:
+            return False, f"Failed to check DNS records: {dns_list_resp.json()}"
+
+        existing_records = dns_list_resp.json().get("result", [])
+        if existing_records:
+            record_id = existing_records[0]["id"]
+
+            update_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records/{record_id}"
+            update_payload = {
+                "type": "CNAME",
+                "name": full_hostname,
+                "content": TUNNEL_HOST,
+                "proxied": True
+            }
+            update_resp = requests.put(
+                update_url, headers=headers, json=update_payload)
+            if not update_resp.ok:
+                return False, f"DNS update failed: {update_resp.json()}"
+        else:
+
+            dns_create_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records"
+            create_payload = {
+                "type": "CNAME",
+                "name": full_hostname,
+                "content": TUNNEL_HOST,
+                "proxied": True
+            }
+            create_resp = requests.post(
+                dns_create_url, headers=headers, json=create_payload)
+            if not create_resp.ok:
+                return False, f"DNS creation failed: {create_resp.json()}"
+
+        return True, full_hostname
+
+    except Exception as e:
+        return False, str(e)
 
 
 @app.route('/')
@@ -262,13 +307,33 @@ def compose_editor(project_name):
         flash('Docker Compose file saved successfully!', 'success')
 
         try:
+            compose_dict = yaml.safe_load(compose_content)
+            services = compose_dict.get("services", {})
+            first_service = next(iter(services.values()), {})
+            ports = first_service.get("ports", [])
+
+            host_port = None
+            for port_entry in ports:
+                if isinstance(port_entry, str) and ':' in port_entry:
+                    host_port = port_entry.split(":")[0]
+                    break
+
+            if not host_port:
+                flash('No valid port mapping found in Compose file.', 'danger')
+                return redirect(request.url)
+
+        except Exception as e:
+            flash(f'Error parsing docker-compose.yml: {str(e)}', 'danger')
+            return redirect(request.url)
+
+        try:
             subprocess.run(
                 ['docker-compose', '-f', compose_file_path, 'up', '-d'],
                 check=True,
                 cwd=os.path.dirname(compose_file_path)
             )
             flash('App deployed successfully!', 'success')
-            return redirect(url_for('launch_app_config', project_name=project_name))
+            return redirect(url_for('launch_app_config', project_name=project_name, docker_port=host_port))
 
         except subprocess.CalledProcessError as e:
             flash(f'Error during deployment: {e}', 'danger')
@@ -282,11 +347,12 @@ def compose_editor(project_name):
 
 @app.route('/launch_app_config/<project_name>', methods=['GET', 'POST'])
 def launch_app_config(project_name):
+    docker_port = request.args.get('docker_port', '')
+
     if request.method == 'POST':
         subdomain = request.form['subdomain'].lower().replace(" ", "-")
         docker_port = request.form['docker_port']
 
-        # Call your Cloudflare API logic
         success, result = create_cloudflare_public_hostname(
             subdomain=subdomain,
             port=docker_port
@@ -300,7 +366,7 @@ def launch_app_config(project_name):
 
         return redirect(url_for('index'))
 
-    return render_template('launchapp.html', project_name=project_name)
+    return render_template('launchapp.html', project_name=project_name, docker_port=docker_port)
 
 
 @app.route('/logs/<container_id>')

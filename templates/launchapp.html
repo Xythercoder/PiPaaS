@@ -29,7 +29,8 @@
 
                     <div class="form-group">
                         <label for="docker_port">Docker Port</label>
-                        <input type="number" class="form-control" id="docker_port" name="docker_port" required>
+                        <input type="number" class="form-control" id="docker_port" name="docker_port"
+                            value="{{ docker_port or '' }}" required>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Launch App</button>
