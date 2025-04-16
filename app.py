@@ -14,14 +14,15 @@ client = docker.from_env()
 
 load_dotenv()
 
-CLOUDFLARE_ZONE_ID = os.getenv('CLOUDFLARE_ZONE_ID')
-CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY')
-CLOUDFLARE_TUNNEL_ID = os.getenv('CLOUDFLARE_TUNNEL_ID')
-CLOUDFLARE_ACCOUNT_ID = os.getenv('CLOUDFLARE_ACCOUNT_ID')
-CLOUDFLARE_CLIENT_ID = os.getenv('CLOUDFLARE_CLIENT_ID')
-CLOUDFLARE_CLIENT_SECRET = os.getenv('CLOUDFLARE_CLIENT_SECRET')
+CF_ZONE_ID = os.getenv('CF_ZONE_ID')
+CF_API_TOKEN = os.getenv('CF_API_TOKEN')
+CF_TUNNEL_ID = os.getenv('CF_TUNNEL_ID')
+CF_ACCOUNT_ID = os.getenv('CF_ACCOUNT_ID')
+CF_ACCOUNT_ID = os.getenv('CF_ACCOUNT_ID')
+CF_DOMAIN = os.getenv('CF_DOMAIN')
+CF_IP = os.getenv('CF_IP')
 
-CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4"
+# CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4"
 
 
 PROJECTS_DIR = os.path.join(os.getcwd(), 'user_projects')
@@ -76,7 +77,7 @@ def parse_docker_compose(compose_content):
 
 
 def get_container_details(container_name):
-    # Custom function to get container details using Docker SDK or CLI
+
     container_info = {}
     container = client.containers.get(container_name)
     container_info['name'] = container.name
@@ -85,31 +86,29 @@ def get_container_details(container_name):
     return container_info
 
 
-def update_cloudflare_tunnel(project_name, subdomain, docker_port):
+def create_cloudflare_public_hostname(subdomain, port):
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/tunnels/{CF_TUNNEL_ID}/configurations"
+
     headers = {
-        'Authorization': f'Bearer {CLOUDFLARE_API_KEY}',
-        'Content-Type': 'application/json',
+        "Authorization": f"Bearer {CF_API_TOKEN}",
+        "Content-Type": "application/json"
     }
 
-    # Create public hostname using Cloudflare Tunnel API
-    data = {
-        "tunnel": CLOUDFLARE_TUNNEL_ID,
-        "url": f"http://localhost:{docker_port}",
-        "hostname": f"{subdomain}.{CLOUDFLARE_ZONE_ID}",
+    new_hostname = f"{subdomain}.{CF_DOMAIN}"
+    config = {
+        "ingress": [
+            {
+                "hostname": new_hostname,
+                "service": f"{CF_IP}:{port}"
+            },
+            {
+                "service": "http_status:404"
+            }
+        ]
     }
 
-    # Send the request to Cloudflare
-    response = requests.post(
-        f"{CLOUDFLARE_API_URL}/zones/{CLOUDFLARE_ZONE_ID}/dns_records",
-        json=data,
-        headers=headers
-    )
-
-    if response.status_code == 200:
-        flash(
-            f"Public hostname {subdomain}.{CLOUDFLARE_ZONE_ID} created successfully!", 'success')
-    else:
-        flash(f"Error creating Cloudflare tunnel: {response.text}", 'danger')
+    response = requests.put(url, headers=headers, json=config)
+    return response.ok, response.json()
 
 
 @app.route('/')
@@ -284,12 +283,22 @@ def compose_editor(project_name):
 @app.route('/launch_app_config/<project_name>', methods=['GET', 'POST'])
 def launch_app_config(project_name):
     if request.method == 'POST':
-        subdomain = request.form['subdomain']
+        subdomain = request.form['subdomain'].lower().replace(" ", "-")
         docker_port = request.form['docker_port']
 
-        update_cloudflare_tunnel(project_name, subdomain, docker_port)
+        # Call your Cloudflare API logic
+        success, result = create_cloudflare_public_hostname(
+            subdomain=subdomain,
+            port=docker_port
+        )
 
-        return redirect(url_for('launch_app_config', project_name=project_name))
+        if success:
+            public_url = f"https://{subdomain}.{CF_DOMAIN}"
+            flash(f"Public URL available at {public_url}", 'success')
+        else:
+            flash(f"Failed to configure Cloudflare Tunnel: {result}", 'danger')
+
+        return redirect(url_for('index'))
 
     return render_template('launchapp.html', project_name=project_name)
 
