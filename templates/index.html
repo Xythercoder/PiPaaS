@@ -24,7 +24,9 @@
         <h2>Active Containers</h2>
 
         {% if containers %}
-        <div class="grid">
+        
+            {% endfor %}
+        </div><div class="grid">
             {% for container in containers %}
             <div class="card">
                 <div class="card-header">
@@ -34,10 +36,10 @@
                     <p><strong>ID:</strong> {{ container.short_id }}</p>
                     <p><strong>Status:</strong>
                         <span class="status 
-              {% if 'running' in container.status %}running
-              {% elif 'exited' in container.status %}exited
-              {% else %}unknown
-              {% endif %}">
+            {% if 'running' in container.status %}running
+            {% elif 'exited' in container.status %}exited
+            {% else %}unknown
+            {% endif %}">
                             {{ container.status }}
                         </span>
                     </p>
@@ -66,10 +68,8 @@
                     </button>
                 </div>
             </div>
-            {% endfor %}
-        </div>
         {% else %}
-        <p class="info">No containers found.</p>
+            <p class="info">No containers found.</p>
         {% endif %}
     </main>
 
