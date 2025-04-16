@@ -22,6 +22,11 @@ CF_ACCOUNT_ID = os.getenv('CF_ACCOUNT_ID')
 CF_DOMAIN = os.getenv('CF_DOMAIN')
 CF_IP = os.getenv('CF_IP')
 
+HEADERS = {
+    "Authorization": f"Bearer {CF_API_TOKEN}",
+    "Content-Type": "application/json"
+}
+
 # CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4"
 TUNNEL_HOST = f"{CF_TUNNEL_ID}.cfargotunnel.com"
 
@@ -86,74 +91,70 @@ def get_container_details(container_name):
     return container_info
 
 
-def create_cloudflare_public_hostname(subdomain, port):
-    try:
-        full_hostname = f"{subdomain}.{CF_DOMAIN}"
-        headers = {
-            "Authorization": f"Bearer {CF_API_TOKEN}",
-            "Content-Type": "application/json"
-        }
+def create_public_hostname(subdomain: str, port: int) -> tuple[bool, str]:
+    hostname = f"{subdomain}.{CF_DOMAIN}"
+    tunnel_url = f"http://{CF_IP}:{port}"
 
-        # Step 1: Update Tunnel Ingress Config
-        tunnel_url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/cfd_tunnel/{CF_TUNNEL_ID}/configurations"
-        tunnel_payload = {
-            "config": {
-                "ingress": [
-                    {
-                        "hostname": full_hostname,
-                        "service": f"http://{CF_IP}:{port}",
-                        "originRequest": {}
-                    },
-                    {
-                        "service": "http_status:404"
-                    }
-                ]
-            }
-        }
+    # 1. Get current tunnel configuration
+    tunnel_config_url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/cfd_tunnel/{CF_TUNNEL_ID}/configurations"
+    config_resp = requests.get(tunnel_config_url, headers=HEADERS)
 
-        tunnel_resp = requests.put(
-            tunnel_url, headers=headers, json=tunnel_payload)
-        if not tunnel_resp.ok:
-            return False, f"Ingress config failed: {tunnel_resp.json()}"
+    if config_resp.status_code != 200:
+        return False, f"Failed to fetch tunnel config: {config_resp.text}"
 
-        dns_list_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records?type=CNAME&name={full_hostname}"
-        dns_list_resp = requests.get(dns_list_url, headers=headers)
-        if not dns_list_resp.ok:
-            return False, f"Failed to check DNS records: {dns_list_resp.json()}"
+    current_config = config_resp.json().get("result", {}).get("config", {})
+    current_ingress = current_config.get("ingress", [])
 
-        existing_records = dns_list_resp.json().get("result", [])
-        if existing_records:
-            record_id = existing_records[0]["id"]
+    # Remove trailing 404 catch-all rule if present
+    catch_all = None
+    if current_ingress and current_ingress[-1].get("service", "").startswith("http_status"):
+        catch_all = current_ingress.pop()
 
-            update_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records/{record_id}"
-            update_payload = {
-                "type": "CNAME",
-                "name": full_hostname,
-                "content": TUNNEL_HOST,
-                "proxied": True
-            }
-            update_resp = requests.put(
-                update_url, headers=headers, json=update_payload)
-            if not update_resp.ok:
-                return False, f"DNS update failed: {update_resp.json()}"
-        else:
+    # Check if hostname already exists
+    for rule in current_ingress:
+        if rule.get("hostname") == hostname:
+            return True, f"https://{hostname} (already exists)"
 
-            dns_create_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records"
-            create_payload = {
-                "type": "CNAME",
-                "name": full_hostname,
-                "content": TUNNEL_HOST,
-                "proxied": True
-            }
-            create_resp = requests.post(
-                dns_create_url, headers=headers, json=create_payload)
-            if not create_resp.ok:
-                return False, f"DNS creation failed: {create_resp.json()}"
+    # Add the new ingress rule at the beginning
+    current_ingress.insert(0, {
+        "hostname": hostname,
+        "service": tunnel_url
+    })
 
-        return True, full_hostname
+    # Re-append the catch-all rule if it existed
+    if catch_all:
+        current_ingress.append(catch_all)
 
-    except Exception as e:
-        return False, str(e)
+    # 2. Update tunnel config with merged ingress list
+    update_resp = requests.put(
+        tunnel_config_url,
+        headers=HEADERS,
+        json={"config": {"ingress": current_ingress}}
+    )
+    if update_resp.status_code != 200:
+        return False, f"Tunnel config update failed: {update_resp.text}"
+
+    # 3. Check or create CNAME record
+    dns_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records"
+    existing = requests.get(
+        f"{dns_url}?type=CNAME&name={hostname}", headers=HEADERS)
+
+    if existing.status_code == 200 and existing.json().get("result"):
+        return True, f"https://{hostname} (already exists)"
+
+    cname_data = {
+        "type": "CNAME",
+        "name": hostname,
+        "content": f"{CF_TUNNEL_ID}.cfargotunnel.com",
+        "proxied": True
+    }
+
+    dns_resp = requests.post(dns_url, headers=HEADERS, json=cname_data)
+    if dns_resp.status_code != 200:
+        return False, f"DNS creation failed: {dns_resp.text}"
+
+    return True, f"https://{hostname}"
+
 
 
 @app.route('/')
@@ -359,7 +360,7 @@ def launch_app_config(project_name):
         subdomain = request.form['subdomain'].lower().replace(" ", "-")
         docker_port = request.form['docker_port']
 
-        success, result = create_cloudflare_public_hostname(
+        success, result = create_public_hostname(
             subdomain=subdomain,
             port=docker_port
         )
