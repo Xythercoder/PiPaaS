@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compose File | PiPaaS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <h1>🧾 Compose File Configuration</h1>
+        <p>Review, edit, or upload your <code>docker-compose.yml</code> before deployment</p>
+    </header>
+
+    <main>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="head--part">Step 2: Validate or Modify Compose</h3>
+            </div>
+            <div class="card-body">
+                {% if compose_content is not none %}
+                <p class="text-success">✅ Found: <code>{{ compose_path }}</code></p>
+                {% else %}
+                <p class="text-danger">❌ No Compose file found. Please upload one below.</p>
+                {% endif %}
+
+                <form method="post" action="{{ url_for('compose_editor', project_name=project_name) }}"
+                    enctype="multipart/form-data">
+                    {% if compose_content %}
+                    <div class="form-group">
+                        <label for="compose_content">Edit Compose File</label>
+                        <textarea class="form-control" id="compose_content" name="compose_content"
+                            rows="15">{{ compose_content }}</textarea>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="new_compose_file">Or Upload New Compose File</label>
+                        <input type="file" class="form-control-file" id="new_compose_file" name="new_compose_file"
+                            accept=".yml,.yaml">
+                    </div>
+
+                    <button type="submit" class="deploy-button">Proceed to Deploy 🚀</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
+    </footer>
+</body>
+
+</html>

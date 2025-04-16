@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Project | PiPaaS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <h1>🚀 Upload Your App</h1>
+        <p>Deploy your project to Raspberry Pi Server</p>
+    </header>
+
+    <main>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="head--part">Step 1: Upload or Clone Project</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('upload_app') }}" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="project_name">Project Name</label>
+                        <input type="text" class="form-control" id="project_name" name="project_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="upload_method">Select Upload Method</label>
+                        <select class="form-control" id="upload_method" name="upload_method" required
+                            onchange="toggleInputs()">
+                            <option value="upload">Upload ZIP File</option>
+                            <option value="github">Clone from GitHub</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="zip_upload_group">
+                        <label for="zip_file">ZIP File</label>
+                        <input type="file" class="form-control-file" id="zip_file" name="zip_file" accept=".zip">
+                    </div>
+
+                    <div class="div--tr" class="form-group" id="github_group">
+                        <label for="github_url">GitHub Repo URL</label>
+                        <input type="url" class="form-control" id="github_url" name="github_url"
+                            placeholder="https://github.com/username/repo">
+                    </div>
+
+                    <button type="submit" class="deploy-button">Upload & Edit</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
+    </footer>
+
+    <script>
+        function toggleInputs() {
+            const method = document.getElementById( "upload_method" ).value;
+            document.getElementById( "zip_upload_group" ).style.display = method === "upload" ? "block" : "none";
+            document.getElementById( "github_group" ).style.display = method === "github" ? "block" : "none";
+            }
+    </script>
+</body>
+
+</html>

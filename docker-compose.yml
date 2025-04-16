@@ -1,0 +1,106 @@
+version: '3.8'
+services:
+  django:
+    image: django
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=django_db
+      - DB_NAME=mydb
+      - DB_USER=user
+      - DB_PASS=pass
+    volumes:
+      - ./templates/django-postgres/app:/app
+    depends_on:
+      - django_db
+
+  django_db:
+    image: postgres
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - django_postgres_data:/var/lib/postgresql/data
+
+  node_mongo_app:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./templates/node-mongo/app:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm start"
+    depends_on:
+      - node_mongo_db
+
+  node_mongo_db:
+    image: mongo
+    volumes:
+      - node_mongo_data:/data/db
+
+  node_postgres_app:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./templates/node-postgres/app:/app
+    ports:
+      - "3001:3000"
+    command: sh -c "npm install && npm start"
+    depends_on:
+      - node_postgres_db
+
+  node_postgres_db:
+    image: postgres
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - node_postgres_data:/var/lib/postgresql/data
+
+  react:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - ./templates/react/app:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: root
+
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  django_postgres_data:
+  node_mongo_data:
+  node_postgres_data:
+  mysql_data:
+  mongodb_data:
