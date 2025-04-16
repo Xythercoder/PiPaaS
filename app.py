@@ -33,6 +33,14 @@ def bytes_to_mb(bytes_value):
     return f"{bytes_value / (1024 * 1024):.2f} MB" if bytes_value is not None else "N/A"
 
 
+def find_compose_file(base_dir):
+    for root, _, files in os.walk(base_dir):
+        for fname in files:
+            if fname in ('docker-compose.yml', 'docker-compose.yaml'):
+                return os.path.join(root, fname)
+    return None
+
+
 def parse_docker_compose(compose_content):
     services = []
 
@@ -138,8 +146,13 @@ def container_action(action):
 @app.route('/upload_app', methods=['GET', 'POST'])
 def upload_app():
     if request.method == 'POST':
-        project_name = request.form['project_name']
-        upload_method = request.form['upload_method']
+        project_name = request.form.get('project_name')
+        upload_method = request.form.get('upload_method')
+
+        if not project_name or not upload_method:
+            flash('Project name and upload method are required.', 'danger')
+            return redirect(url_for('upload_app'))
+
         save_path = os.path.join(PROJECTS_DIR, project_name)
 
         try:
@@ -149,8 +162,8 @@ def upload_app():
 
             if upload_method == 'upload':
                 zip_file = request.files.get('zip_file')
-                if not zip_file:
-                    flash('No ZIP file uploaded', 'danger')
+                if not zip_file or zip_file.filename == '':
+                    flash('No ZIP file uploaded.', 'danger')
                     return redirect(url_for('upload_app'))
 
                 zip_path = os.path.join('/tmp', f"{project_name}.zip")
@@ -161,48 +174,77 @@ def upload_app():
             elif upload_method == 'github':
                 github_url = request.form.get('github_url')
                 if not github_url:
-                    flash('No GitHub URL provided', 'danger')
+                    flash('No GitHub URL provided.', 'danger')
                     return redirect(url_for('upload_app'))
 
                 subprocess.run(
                     ["git", "clone", github_url, save_path], check=True)
 
+            else:
+                flash('Invalid upload method selected.', 'danger')
+                return redirect(url_for('upload_app'))
+
+            sub_items = os.listdir(save_path)
+            if len(sub_items) == 1:
+                first_item = os.path.join(save_path, sub_items[0])
+                if os.path.isdir(first_item):
+                    for item in os.listdir(first_item):
+                        shutil.move(os.path.join(first_item, item), save_path)
+                    os.rmdir(first_item)
+
+            compose_file = None
+            for root, _, files in os.walk(save_path):
+                for f in files:
+                    if f in ('docker-compose.yml', 'docker-compose.yaml'):
+                        compose_file = os.path.join(root, f)
+                        break
+                if compose_file:
+                    break
+
+            if not compose_file:
+                shutil.rmtree(save_path)
+                flash(
+                    'No docker-compose.yml or .yaml found in uploaded project.', 'danger')
+                return redirect(url_for('upload_app'))
+
             flash(f"{project_name} uploaded successfully!", "success")
             return redirect(url_for('compose_editor', project_name=project_name))
 
+        except subprocess.CalledProcessError as e:
+            shutil.rmtree(save_path, ignore_errors=True)
+            flash(f"GitHub clone error: {e}", 'danger')
+            return redirect(url_for('upload_app'))
+
         except Exception as e:
-            flash(f"Error: {str(e)}", "danger")
+            shutil.rmtree(save_path, ignore_errors=True)
+            flash(f"Error during upload: {str(e)}", 'danger')
             return redirect(url_for('upload_app'))
 
     return render_template('uploadpage.html')
 
 
-
 @app.route('/compose_editor/<project_name>', methods=['GET', 'POST'])
 def compose_editor(project_name):
     temp_project_dir = os.path.join(PROJECTS_DIR, project_name)
-    compose_file_path = os.path.join(temp_project_dir, 'docker-compose.yml')
+    compose_file_path = find_compose_file(temp_project_dir)
 
     if request.method == 'GET':
-        compose_found = os.path.exists(compose_file_path)
+        compose_found = compose_file_path is not None
+        compose_content = None
+
         if compose_found:
-            compose_path = compose_file_path
             with open(compose_file_path, 'r') as file:
                 compose_content = file.read()
-        else:
-            compose_path = None
-            compose_content = None 
 
         return render_template('compose_editor.html',
                                compose_found=compose_found,
-                               compose_path=compose_path,
+                               compose_path=compose_file_path,
                                compose_content=compose_content,
                                project_name=project_name)
 
     if request.method == 'POST':
         compose_content = None
 
-    
         if 'compose_content' in request.form:
             compose_content = request.form['compose_content']
 
@@ -211,8 +253,8 @@ def compose_editor(project_name):
             if file and file.filename:
                 compose_content = file.read().decode('utf-8')
 
-        if not compose_content:
-            flash('No Compose content provided. Please fill or upload.', 'danger')
+        if not compose_content or not compose_file_path:
+            flash('No Compose content or file path found.', 'danger')
             return redirect(request.url)
 
         with open(compose_file_path, 'w') as file:
@@ -224,7 +266,7 @@ def compose_editor(project_name):
             subprocess.run(
                 ['docker-compose', '-f', compose_file_path, 'up', '-d'],
                 check=True,
-                cwd=temp_project_dir
+                cwd=os.path.dirname(compose_file_path)
             )
             flash('App deployed successfully!', 'success')
             return redirect(url_for('launch_app_config', project_name=project_name))
@@ -232,13 +274,11 @@ def compose_editor(project_name):
         except subprocess.CalledProcessError as e:
             flash(f'Error during deployment: {e}', 'danger')
 
-
         return render_template('compose_editor.html',
                                compose_found=True,
                                compose_path=compose_file_path,
                                compose_content=compose_content,
                                project_name=project_name)
-
 
 
 @app.route('/launch_app_config/<project_name>', methods=['GET', 'POST'])
