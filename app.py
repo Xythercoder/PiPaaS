@@ -279,7 +279,10 @@ def compose_editor(project_name):
         if compose_found:
             with open(compose_file_path, 'r') as file:
                 compose_content = file.read()
-
+                
+                print("Compose path:", compose_file_path)
+                print("Compose content:", compose_content)
+                
         return render_template('compose_editor.html',
                                compose_found=compose_found,
                                compose_path=compose_file_path,
@@ -309,8 +312,10 @@ def compose_editor(project_name):
         try:
             compose_dict = yaml.safe_load(compose_content)
             services = compose_dict.get("services", {})
+            print("Parsed services:", services)
 
-            nginx_service = services.get("server") | services.get("nginx")
+            nginx_service = services.get("server") or services.get("nginx")
+            print("Nginx service:", nginx_service)
             host_port = None
 
             if nginx_service:
