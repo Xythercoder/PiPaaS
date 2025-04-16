@@ -288,7 +288,8 @@ def compose_editor(project_name):
 
     if request.method == 'POST':
         compose_content = None
-
+        
+    
         if 'compose_content' in request.form:
             compose_content = request.form['compose_content']
 
@@ -310,8 +311,8 @@ def compose_editor(project_name):
             compose_dict = yaml.safe_load(compose_content)
             services = compose_dict.get("services", {})
 
+            nginx_service = services.get("server") or services.get("nginx")
             host_port = None
-            nginx_service = services.get("nginx", {})
 
             if nginx_service:
                 ports = nginx_service.get("ports", [])
