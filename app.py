@@ -309,17 +309,22 @@ def compose_editor(project_name):
         try:
             compose_dict = yaml.safe_load(compose_content)
             services = compose_dict.get("services", {})
-            first_service = next(iter(services.values()), {})
-            ports = first_service.get("ports", [])
 
             host_port = None
-            for port_entry in ports:
-                if isinstance(port_entry, str) and ':' in port_entry:
-                    host_port = port_entry.split(":")[0]
-                    break
+            nginx_service = services.get("nginx", {})
+
+            if nginx_service:
+                ports = nginx_service.get("ports", [])
+                for port_entry in ports:
+                    if isinstance(port_entry, str) and ':' in port_entry:
+                        host_port = port_entry.split(":")[0].strip()
+                        break
+            else:
+                flash("No 'nginx' service found in docker-compose.yml.", 'danger')
+                return redirect(request.url)
 
             if not host_port:
-                flash('No valid port mapping found in Compose file.', 'danger')
+                flash("No valid port mapping found for 'nginx' service.", 'danger')
                 return redirect(request.url)
 
         except Exception as e:

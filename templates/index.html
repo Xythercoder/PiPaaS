@@ -11,9 +11,9 @@
 <body>
     <header>
         <h1>🌐 PiPaaS</h1>
-        <p>Mini-Heroku Powered by Raspberry Pi</p>
+        <p>Mini-Pi-PaaS Powered by Xythercoder</p>
         {% if session.get('username') %}
-            <p>Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+        <p>Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
         {% endif %}
     </header>
 
@@ -47,17 +47,21 @@
                     <a class="action-button" href="/stats/{{ container.id }}"
                         {% if 'running' in container.status %}disabled{% endif %}>Stats</a>
 
-                    <a  class="action-button" href="/logs/{{ container.id }}" {% if 'running' in container.status %}disabled{% endif %}>Logs</a>
+                    <a class="action-button" href="/logs/{{ container.id }}"
+                        {% if 'running' in container.status %}disabled{% endif %}>Logs</a>
 
-                    <button type="submit" class="action-button" data-action="start" data-container-id="{{ container.id }}"
+                    <button type="submit" class="action-button" data-action="start"
+                        data-container-id="{{ container.id }}"
                         {% if 'exited' in container.status %}disabled{% endif %}>Sart
                     </button>
 
-                    <button type="submit" class="action-button" data-action="stop" data-container-id="{{ container.id }}"
+                    <button type="submit" class="action-button" data-action="stop"
+                        data-container-id="{{ container.id }}"
                         {% if 'exited' in container.status %}disabled{% endif %}>Stop
                     </button>
 
-                    <button type="submit" class="action-button" data-action="restart" data-container-id="{{ container.id }}"
+                    <button type="submit" class="action-button" data-action="restart"
+                        data-container-id="{{ container.id }}"
                         {% if 'running' not in container.status %}disabled{% endif %}>Restart
                     </button>
                 </div>
@@ -86,13 +90,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify( payload ) 
+                body: JSON.stringify( payload )
             } )
                 .then( response => response.json() )
                 .then( data => {
                     if ( data.success ) {
                         alert( `Container ${ action }ed successfully!` );
-                        location.reload(); 
+                        location.reload();
                     } else {
                         alert( `Error: ${ data.message }` );
                     }
@@ -102,16 +106,16 @@
                 } );
         }
 
-   
+
         document.addEventListener( 'DOMContentLoaded', () => {
 
             const actionButtons = document.querySelectorAll( '.action-button' );
 
             actionButtons.forEach( button => {
                 button.addEventListener( 'click', ( event ) => {
-                    const action = button.dataset.action;  
-                    const containerId = button.dataset.containerId;  
-                    handleContainerAction( action, containerId );  
+                    const action = button.dataset.action;
+                    const containerId = button.dataset.containerId;
+                    handleContainerAction( action, containerId );
                 } );
             } );
         } );
