@@ -23,7 +23,31 @@
         <main>
             <h2>Containers</h2>
             <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
-            <div id="container-list">
+            <br></br>
+            <div class="card">
+                <div class="card-header">
+                    <h3>{{ container.name }}</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>ID:</strong> {{ container.id }}</p>
+                    <p><strong>Status:</strong>
+                        <span class="status {{ container.status }}">
+                            {{ container.status }}
+                        </span>
+                    </p>
+                    <p><strong>CPU Usage:</strong> {{ container.cpu_percent }}%</p>
+                    <p><strong>Memory Usage:</strong> {{ container.mem_usage }} / {{ container.mem_limit }}
+                        ({{ container.mem_percent }}%)</p>
+                    <p><strong>Network Input:</strong> {{ container.net_input }}</p>
+                    <p><strong>Network Output:</strong> {{ container.net_output }}</p>
+                    <p><strong>Disk I/O:</strong> {{ container.block_input }} / {{ container.block_output }}</p>
+                </div>
+                <div class="card-footer">
+                    <a class="action-button view-button" href="/logs/{{ container.id }}">Logs</a>
+                    <a class="action-button view-button" href="/stats/{{ container.id }}">Stats</a>
+                    <button class="action-button" onclick="changeContainerState('{{ container.name }}', 'stop')">Stop</button>
+                    <button class="action-button" onclick="changeContainerState('{{ container.name }}', 'restart')">Restart</button>
+                </div>
             </div>
         </main>
 
@@ -32,65 +56,17 @@
         </footer>
 
         <script>
-        function fetchContainerStats() {
-            $.getJSON( '/api/stats', function ( data ) {
-                let containerList = $( '#container-list' );
-                containerList.empty(); // Clear existing containers
-
-                // Iterate over the data and create HTML for each container
-                data.forEach( function ( container ) {
-                    let statusClass = '';
-                    if ( container.status === 'running' ) {
-                        statusClass = 'running';
-                    } else if ( container.status === 'exited' ) {
-                        statusClass = 'exited';
-                    } else {
-                        statusClass = 'unknown';
-                    }
-
-                    containerList.append( `
-                        <div class="card">
-                            <div class="card-header">
-                                <h3>${ container.name }</h3>
-                            </div>
-                            <div class="card-body">
-                                <p><strong>ID:</strong> ${ container.id }</p>
-                                <p><strong>Status:</strong>
-                                    <span class="status ${ statusClass }">
-                                        ${ container.status }
-                                    </span>
-                                </p>
-                                <p><strong>CPU Usage:</strong> ${ container.cpu_percent }%</p>
-                                <p><strong>Memory Usage:</strong> ${ container.mem_usage } / ${ container.mem_limit } (${ container.mem_percent }%)</p>
-                                <p><strong>Network Input:</strong> ${ container.net_input }</p>
-                                <p><strong>Network Output:</strong> ${ container.net_output }</p>
-                                <p><strong>Disk I/O:</strong> ${ container.block_input } / ${ container.block_output }</p>
-                            </div>
-                            <div class="card-footer">
-                                <button onclick="changeContainerState('${ container.name }', 'stop')">Stop</button>
-                                <button onclick="changeContainerState('${ container.name }', 'restart')">Restart</button>
-                            </div>
-                        </div>
-                    `);
-                } );
-            } );
-        }
-
         function changeContainerState( containerName, action ) {
-            $.post( `/api/container/${ action }`, { name: containerName }, function ( response ) {
-                if ( response.success ) {
-                    alert( `Container ${ action }ed successfully!` );
-                    fetchContainerStats(); // Refresh stats after action
-                } else {
-                    alert( 'Failed to change container state.' );
-                }
-            } );
-        }
-
-        setInterval( fetchContainerStats, 3000 );
-
-        fetchContainerStats();
-    </script>
+                $.post( `/api/container/${ action }`, { name: containerName }, function ( response ) {
+                    if ( response.success ) {
+                        alert( `Container ${ action }ed successfully!` );
+                        location.reload();
+                    } else {
+                        alert( 'Failed to change container state.' );
+                    }
+                } );
+            }
+        </script>
     </body>
 
 </html>
