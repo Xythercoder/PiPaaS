@@ -414,29 +414,28 @@ input[type="file"]:hover {
   }
 }
 @media (max-width: 768px) {
-    header h1 {
-      font-size: 1.5rem;
-    }
+  header h1 {
+    font-size: 1.5rem;
+  }
 
-    header p {
-      font-size: 0.85rem;
-    }
+  header p {
+    font-size: 0.85rem;
+  }
 
-    main h2 {
-      font-size: 1.2rem;
-    }
+  main h2 {
+    font-size: 1.2rem;
+  }
 
-    form label {
-      font-size: 0.9rem;
-    }
+  form label {
+    font-size: 0.9rem;
+  }
 
-    form input,
-    form select {
-      font-size: 0.9rem;
-    }
+  form input,
+  form select {
+    font-size: 0.9rem;
+  }
 
-    form button {
-      font-size: 1rem;
-    }
+  form button {
+    font-size: 1rem;
   }
 }
