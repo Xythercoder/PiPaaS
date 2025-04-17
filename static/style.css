@@ -288,6 +288,41 @@ input[type="file"]:hover {
   color: white;
 }
 
+.action-button {
+    display: inline-block;
+    padding: 8px 14px;
+    margin: 5px 4px;
+    border: none;
+    border-radius: 8px;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
+    text-align: center;
+}
+
+.action-button:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+
+.action-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.view-button {
+    background-color: #007BFF;
+}
+
+.view-button:hover {
+    background-color: #0056b3;
+}
+
 .log-output {
   max-height: 400px;
   overflow-y: auto;
@@ -372,6 +407,11 @@ input[type="file"]:hover {
     text-align: center;
 }
 
+@media screen and (max-width: 600px) {
+  .action-button {
+      font-size: 0.8rem;
+      padding: 6px 10px;
+}
 
 @media (max-width: 768px) {
   header h1 {

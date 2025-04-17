@@ -44,16 +44,8 @@
                     <p><strong>Image:</strong> {{ container.image.tags[0] if container.image.tags else 'None' }}</p>
                 </div>
                 <div class="card-footer">
-                    <form method="POST" action="/container/action">
-                        <input type="hidden" name="container_id" value="{{ container.id }}">
-                        <input type="hidden" name="action" value="Stats">
-                        <a class="action-button" href="/stats/{{ container.id }}">Stats</a>
-                    </form>
-                    <form method="POST" action="/container/action">
-                        <input type="hidden" name="container_id" value="{{ container.id }}">
-                        <input type="hidden" name="action" value="Stats">
-                        <a class="action-button" href="/logs/{{ container.id }}">Logs</a>
-                    </form>
+                    <a class="action-button view-button" href="/logs/{{ container.id }}">Logs</a>
+                    <a class="action-button view-button" href="/stats/{{ container.id }}">Stats</a>
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
                         <input type="hidden" name="action" value="start">
@@ -164,20 +156,6 @@
                     alert( 'Error: ' + error.message );
                 } );
         }
-
-
-        document.addEventListener( 'DOMContentLoaded', () => {
-
-            const actionButtons = document.querySelectorAll( '.action-button' );
-
-            actionButtons.forEach( button => {
-                button.addEventListener( 'click', ( event ) => {
-                    const action = button.dataset.action;
-                    const containerId = button.dataset.containerId;
-                    handleContainerAction( action, containerId );
-                } );
-            } );
-        } );
     </script>
 
 </body>
