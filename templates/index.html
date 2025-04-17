@@ -25,9 +25,8 @@
 
         {% if containers %}
         
-            {% endfor %}
-        </div><div class="grid">
-            {% for container in containers %}
+    </div><div class="grid">
+        {% for container in containers %}
             <div class="card">
                 <div class="card-header">
                     <h3>{{ container.name }}</h3>
@@ -46,30 +45,29 @@
                     <p><strong>Image:</strong> {{ container.image.tags[0] if container.image.tags else 'None' }}</p>
                 </div>
                 <div class="card-footer">
-                    <a class="action-button" href="/stats/{{ container.id }}"
-                        {% if 'running' in container.status %}disabled{% endif %}>Stats</a>
-
-                    <a class="action-button" href="/logs/{{ container.id }}"
-                        {% if 'running' in container.status %}disabled{% endif %}>Logs</a>
-
-                    <button type="submit" class="action-button" data-action="start"
-                        data-container-id="{{ container.id }}"
-                        {% if 'exited' in container.status %}disabled{% endif %}>Sart
-                    </button>
-
-                    <button type="submit" class="action-button" data-action="stop"
-                        data-container-id="{{ container.id }}"
-                        {% if 'exited' in container.status %}disabled{% endif %}>Stop
-                    </button>
-
-                    <button type="submit" class="action-button" data-action="restart"
-                        data-container-id="{{ container.id }}"
-                        {% if 'running' not in container.status %}disabled{% endif %}>Restart
-                    </button>
+                    <form method="POST" action="/container/action">
+                        <input type="hidden" name="container_id" value="{{ container.id }}">
+                        <input type="hidden" name="action" value="start">
+                        <button type="submit" class="action-button" {% if 'running' in container.status %}disabled{% endif %}>Start</button>
+                    </form>
+                    
+                    <form method="POST" action="/container/action">
+                        <input type="hidden" name="container_id" value="{{ container.id }}">
+                        <input type="hidden" name="action" value="stop">
+                        <button type="submit" class="action-button" {% if 'exited' in container.status %}disabled{% endif %}>Stop</button>
+                    </form>
+                    
+                    <form method="POST" action="/container/action">
+                        <input type="hidden" name="container_id" value="{{ container.id }}">
+                        <input type="hidden" name="action" value="restart">
+                        <button type="submit" class="action-button"
+                            {% if 'running' not in container.status %}disabled{% endif %}>Restart</button>
+                    </form>
                 </div>
             </div>
+        {% endfor %}
         {% else %}
-            <p class="info">No containers found.</p>
+        <p class="info">No containers found.</p>
         {% endif %}
     </main>
 

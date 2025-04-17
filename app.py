@@ -162,29 +162,34 @@ def index():
     return render_template('index.html', containers=containers)
 
 
-@app.route('/api/container/<action>', methods=['POST'])
-def container_action(action):
-    # Get container ID from the request JSON
-    container_id = request.json.get('container_id')
+@app.route('/container/action', methods=['POST'])
+def container_action():
+    container_id = request.form.get('container_id')
+    action = request.form.get('action')
+
     if not container_id:
-        return jsonify({"success": False, "message": "No container ID provided."}), 400
+        flash("Error: No container ID provided.", "danger")
+        return redirect(url_for('index'))
 
     try:
         container = client.containers.get(container_id)
-        if action == "stop":
-            container.stop()
-        elif action == "restart":
-            container.restart()
-        elif action == "start":
-            container.start()
-        else:
-            return jsonify({"success": False, "message": "Invalid action."}), 400
 
-        return jsonify({"success": True, "message": f"Container {action}ed successfully."})
-    except docker.errors.NotFound:
-        return jsonify({"success": False, "message": "Container not found."}), 404
+        if action == 'start':
+            container.start()
+        elif action == 'stop':
+            container.stop()
+        elif action == 'restart':
+            container.restart()
+        else:
+            flash(f"Unknown action: {action}", "danger")
+            return redirect(url_for('index'))
+
+        flash(f"Container {action}ed successfully!", "success")
+
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        flash(f"Error performing action: {str(e)}", "danger")
+
+    return redirect(url_for('index'))
 
 
 @app.route('/upload_app', methods=['GET', 'POST'])
@@ -279,10 +284,10 @@ def compose_editor(project_name):
         if compose_found:
             with open(compose_file_path, 'r') as file:
                 compose_content = file.read()
-                
+
                 print("Compose path:", compose_file_path)
                 print("Compose content:", compose_content)
-                
+
         return render_template('compose_editor.html',
                                compose_found=compose_found,
                                compose_path=compose_file_path,
