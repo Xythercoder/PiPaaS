@@ -11,7 +11,7 @@ body {
   height:auto;
   background-color: #f7f9fc;
   color: #333;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 body.dark-mode {
@@ -74,6 +74,7 @@ header p {
 
 main {
   margin-top: 10px;
+  padding: 20px;
 }
 
 main h2 {
@@ -93,10 +94,10 @@ main h2 {
 
 form {
   background-color: #fff;
-  padding: 20px;
+  padding: 10px;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
+  margin-bottom: 5px;
 }
 
 form label {
@@ -140,16 +141,15 @@ form button:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
-  overflow: scroll;
 }
 
 .card {
+  display: grid;
+  grid-template-columns: auto auto auto;
   margin-top: 10px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: grid;
-  grid-template-columns: auto auto;
   overflow: hidden;
   transition: transform 0.2s ease-in-out;
 }
@@ -171,7 +171,8 @@ form button:hover {
 }
 
 .card-body {
-  grid-column-start: 3;
+  grid-column-start: 1;
+  grid-column-end: 6;
   padding: 15px;
   font-size: 0.95rem;
 }
@@ -179,9 +180,12 @@ form button:hover {
 .div--main {
   text-align: right;
   margin-bottom: 20px;
+  grid-column-start: 3;
 }
 
 .card-footer {
+  grid-column-start: 1;
+  grid-column-end: 6;
   padding: 10px 15px;
   text-align: right;
   background-color: #f1f1f1;
