@@ -27,7 +27,6 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-# CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4"
 TUNNEL_HOST = f"{CF_TUNNEL_ID}.cfargotunnel.com"
 
 
@@ -62,7 +61,6 @@ def parse_docker_compose(compose_content):
 
                 if 'ports' in config:
                     for port_mapping in config['ports']:
-                        # Support both formats: "8000:8000" or long format
                         if isinstance(port_mapping, str):
                             host_port, container_port = port_mapping.split(':')
                             service_info['ports'].append({
@@ -95,7 +93,6 @@ def create_public_hostname(subdomain: str, port: int) -> tuple[bool, str]:
     hostname = f"{subdomain}.{CF_DOMAIN}"
     tunnel_url = f"http://{CF_IP}:{port}"
 
-    # 1. Get current tunnel configuration
     tunnel_config_url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/cfd_tunnel/{CF_TUNNEL_ID}/configurations"
     config_resp = requests.get(tunnel_config_url, headers=HEADERS)
 
@@ -105,27 +102,22 @@ def create_public_hostname(subdomain: str, port: int) -> tuple[bool, str]:
     current_config = config_resp.json().get("result", {}).get("config", {})
     current_ingress = current_config.get("ingress", [])
 
-    # Remove trailing 404 catch-all rule if present
     catch_all = None
     if current_ingress and current_ingress[-1].get("service", "").startswith("http_status"):
         catch_all = current_ingress.pop()
 
-    # Check if hostname already exists
     for rule in current_ingress:
         if rule.get("hostname") == hostname:
             return True, f"https://{hostname} (already exists)"
 
-    # Add the new ingress rule at the beginning
     current_ingress.insert(0, {
         "hostname": hostname,
         "service": tunnel_url
     })
 
-    # Re-append the catch-all rule if it existed
     if catch_all:
         current_ingress.append(catch_all)
 
-    # 2. Update tunnel config with merged ingress list
     update_resp = requests.put(
         tunnel_config_url,
         headers=HEADERS,
@@ -134,7 +126,6 @@ def create_public_hostname(subdomain: str, port: int) -> tuple[bool, str]:
     if update_resp.status_code != 200:
         return False, f"Tunnel config update failed: {update_resp.text}"
 
-    # 3. Check or create CNAME record
     dns_url = f"https://api.cloudflare.com/client/v4/zones/{CF_ZONE_ID}/dns_records"
     existing = requests.get(
         f"{dns_url}?type=CNAME&name={hostname}", headers=HEADERS)
@@ -389,11 +380,10 @@ def container_logs(container_id):
     try:
         container = client.containers.get(container_id)
         logs = container.logs(tail=100).decode('utf-8')
-        return render_template('logs.html', logs=logs, container_id=container_id)
-    except docker.errors.NotFound:
-        return jsonify({"success": False, "message": "Container not found."}), 404
+        return render_template('logs.html', container=container, logs=logs)
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        flash(f"Error fetching logs: {str(e)}", "danger")
+        return redirect(url_for('index'))
 
 
 @app.route('/api/logs/<container_id>')
@@ -411,11 +401,10 @@ def container_stats(container_id):
     try:
         container = client.containers.get(container_id)
         stats = container.stats(stream=False)
-        return render_template('stats.html', stats=stats, container_id=container_id)
-    except docker.errors.NotFound:
-        return jsonify({"success": False, "message": "Container not found."}), 404
+        return render_template('stats.html', container=container, stats=stats)
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        flash(f"Error fetching stats: {str(e)}", "danger")
+        return redirect(url_for('index'))
 
 
 @app.route('/api/stats')
@@ -425,7 +414,6 @@ def api_stats():
         try:
             stat = container.stats(stream=False)
 
-            # CPU Usage %
             cpu_delta = stat["cpu_stats"]["cpu_usage"]["total_usage"] - \
                 stat["precpu_stats"]["cpu_usage"]["total_usage"]
             system_delta = stat["cpu_stats"]["system_cpu_usage"] - \
@@ -435,7 +423,6 @@ def api_stats():
                 cpu_percent = (cpu_delta / system_delta) * \
                     len(stat["cpu_stats"]["cpu_usage"]["percpu_usage"]) * 100.0
 
-            # Memory usage
             mem_usage = stat["memory_stats"]["usage"]
             mem_limit = stat["memory_stats"]["limit"]
             mem_percent = (mem_usage / mem_limit) * 100.0 if mem_limit else 0.0

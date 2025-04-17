@@ -24,9 +24,8 @@
         <h2>Active Containers</h2>
 
         {% if containers %}
-        
-    </div><div class="grid">
-        {% for container in containers %}
+        <div class="grid">
+            {% for container in containers %}
             <div class="card">
                 <div class="card-header">
                     <h3>{{ container.name }}</h3>
@@ -47,16 +46,28 @@
                 <div class="card-footer">
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
-                        <input type="hidden" name="action" value="start">
-                        <button type="submit" class="action-button" {% if 'running' in container.status %}disabled{% endif %}>Start</button>
+                        <input type="hidden" name="action" value="Stats">
+                        <a class="action-button" href="/stats/{{ container.id }}">Stats</a>
                     </form>
-                    
+                    <form method="POST" action="/container/action">
+                        <input type="hidden" name="container_id" value="{{ container.id }}">
+                        <input type="hidden" name="action" value="Stats">
+                        <a class="action-button" href="/logs/{{ container.id }}">Logs</a>
+                    </form>
+                    <form method="POST" action="/container/action">
+                        <input type="hidden" name="container_id" value="{{ container.id }}">
+                        <input type="hidden" name="action" value="start">
+                        <button type="submit" class="action-button"
+                            {% if 'running' in container.status %}disabled{% endif %}>Start</button>
+                    </form>
+
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
                         <input type="hidden" name="action" value="stop">
-                        <button type="submit" class="action-button" {% if 'exited' in container.status %}disabled{% endif %}>Stop</button>
+                        <button type="submit" class="action-button"
+                            {% if 'exited' in container.status %}disabled{% endif %}>Stop</button>
                     </form>
-                    
+
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
                         <input type="hidden" name="action" value="restart">
@@ -65,15 +76,65 @@
                     </form>
                 </div>
             </div>
-        {% endfor %}
+            {% endfor %}
         {% else %}
         <p class="info">No containers found.</p>
         {% endif %}
+        </div>
+        <h2>📊 Live Container Stats</h2>
+        <table id="stats-table">
+            <thead>
+                <tr>
+                    <th>Container</th>
+                    <th>CPU %</th>
+                    <th>Memory Used</th>
+                    <th>Memory %</th>
+                    <th>Net In</th>
+                    <th>Net Out</th>
+                    <th>Block In</th>
+                    <th>Block Out</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
     </main>
 
     <footer>
         <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
     </footer>
+
+    <script>
+        function fetchStats() {
+            fetch( '/api/stats' )
+                .then( response => response.json() )
+                .then( data => {
+                    const tbody = document.querySelector( '#stats-table tbody' );
+                    tbody.innerHTML = '';
+
+                    data.forEach( stat => {
+                        const row = `
+                            <tr>
+                                <td>${ stat.name }</td>
+                                <td>${ stat.cpu_percent }%</td>
+                                <td>${ stat.mem_usage } MB / ${ stat.mem_limit } MB</td>
+                                <td>${ stat.mem_percent }%</td>
+                                <td>${ stat.net_input } MB</td>
+                                <td>${ stat.net_output } MB</td>
+                                <td>${ stat.block_input } MB</td>
+                                <td>${ stat.block_output } MB</td>
+                            </tr>`;
+                        tbody.innerHTML += row;
+                    } );
+                } )
+                .catch( err => {
+                    console.error( 'Failed to fetch stats:', err );
+                } );
+        }
+
+        setInterval( fetchStats, 5000 );
+        fetchStats();
+    </script>
 
     <script>
 

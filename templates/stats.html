@@ -1,36 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PiPaaS Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>PiPaaS Dashboard</title>
+        <link rel="stylesheet"
+            href="{{ url_for('static', filename='style.css') }}" />
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    </head>
 
-<body>
-    <header>
-        <h1>🌐 PiPaaS</h1>
-        <p>Mini-Server Powered by Raspberry Pi</p>
-        {% if session.get('username') %}
-            <p>Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
-        {% endif %}
-    </header>
+    <body>
+        <header>
+            <h1>🌐 PiPaaS</h1>
+            <p>Mini-Server Powered by Raspberry Pi</p>
+            {% if session.get('username') %}
+            <p>Logged in as {{ session['username'] }} | <a
+                    href="{{ url_for('logout') }}">Logout</a></p>
+            {% endif %}
+        </header>
 
-    <main>
-        <h2>Active Containers</h2>
+        <main>
+            <h2>Containers</h2>
+            <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
+            <div id="container-list">
+            </div>
+        </main>
 
-        <div id="container-list">
-            <!-- Containers will be dynamically added here -->
-        </div>
-    </main>
+        <footer>
+            <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
+        </footer>
 
-    <footer>
-        <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
-    </footer>
-
-    <script>
+        <script>
         function fetchContainerStats() {
             $.getJSON( '/api/stats', function ( data ) {
                 let containerList = $( '#container-list' );
@@ -86,12 +87,10 @@
             } );
         }
 
-        // Fetch stats every 5 seconds
-        setInterval( fetchContainerStats, 5000 );
+        setInterval( fetchContainerStats, 3000 );
 
-        // Initial fetch
         fetchContainerStats();
     </script>
-</body>
+    </body>
 
 </html>
