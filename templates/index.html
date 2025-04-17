@@ -118,36 +118,52 @@
         };
     </script>
     <script>
+        // Format bytes to MB with 2 decimal places
+        const formatMB = ( bytes ) => {
+            return ( parseFloat( bytes ) / ( 1024 * 1024 ) ).toFixed( 2 );
+        };
+
         function fetchStats() {
             fetch( '/api/stats' )
-                .then( response => response.json() )
+                .then( response => {
+                    if ( !response.ok ) throw new Error( "Network response was not ok" );
+                    return response.json();
+                } )
                 .then( data => {
                     const tbody = document.querySelector( '#stats-table tbody' );
-                    tbody.innerHTML = '';
+                    let rows = '';
 
-                    data.forEach( stat => {
-                        const row = `
-                            <tr>
-                                <td>${ stat.name }</td>
-                                <td>${ stat.cpu_percent }%</td>
-                                <td>${ stat.mem_usage } MB / ${ stat.mem_limit } MB</td>
-                                <td>${ stat.mem_percent }%</td>
-                                <td>${ stat.net_input } MB</td>
-                                <td>${ stat.net_output } MB</td>
-                                <td>${ stat.block_input } MB</td>
-                                <td>${ stat.block_output } MB</td>
-                            </tr>`;
-                        tbody.innerHTML += row;
-                    } );
+                    if ( !Array.isArray( data ) || data.length === 0 ) {
+                        rows = `<tr><td colspan="8">No stats available</td></tr>`;
+                    } else {
+                        data.forEach( stat => {
+                            rows += `
+                                <tr>
+                                    <td>${ stat.name }</td>
+                                    <td>${ stat.cpu_percent }%</td>
+                                    <td>${ formatMB( stat.mem_usage ) } MB / ${ formatMB( stat.mem_limit ) } MB</td>
+                                    <td>${ stat.mem_percent }%</td>
+                                    <td>${ formatMB( stat.net_input ) } MB</td>
+                                    <td>${ formatMB( stat.net_output ) } MB</td>
+                                    <td>${ formatMB( stat.block_input ) } MB</td>
+                                    <td>${ formatMB( stat.block_output ) } MB</td>
+                                </tr>`;
+                        } );
+                    }
+
+                    tbody.innerHTML = rows;
                 } )
                 .catch( err => {
                     console.error( 'Failed to fetch stats:', err );
+                    const tbody = document.querySelector( '#stats-table tbody' );
+                    tbody.innerHTML = `<tr><td colspan="8" style="color: red;">Error loading stats</td></tr>`;
                 } );
         }
 
-        setInterval( fetchStats, 5000 );
         fetchStats();
+        const statsInterval = setInterval( fetchStats, 3000 );
     </script>
+
 
     <script>
 
