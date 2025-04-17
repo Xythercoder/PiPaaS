@@ -400,8 +400,53 @@ def get_logs(container_id):
 def container_stats(container_id):
     try:
         container = client.containers.get(container_id)
-        stats = container.stats(stream=False)
-        return render_template('stats.html', container=container, stats=stats)
+        raw_stats = container.stats(stream=False)
+
+        # CPU Usage %
+        cpu_delta = raw_stats["cpu_stats"]["cpu_usage"]["total_usage"] - \
+            raw_stats["precpu_stats"]["cpu_usage"]["total_usage"]
+        system_delta = raw_stats["cpu_stats"]["system_cpu_usage"] - \
+            raw_stats["precpu_stats"]["system_cpu_usage"]
+        cpu_percent = 0.0
+        if system_delta > 0.0 and cpu_delta > 0.0:
+            cpu_percent = (cpu_delta / system_delta) * \
+                len(raw_stats["cpu_stats"]["cpu_usage"]
+                    ["percpu_usage"]) * 100.0
+
+        # Memory
+        mem_usage = raw_stats["memory_stats"]["usage"]
+        mem_limit = raw_stats["memory_stats"]["limit"]
+        mem_percent = (mem_usage / mem_limit) * 100.0
+
+        # Network
+        net_input = 0
+        net_output = 0
+        networks = raw_stats.get("networks", {})
+        for iface in networks.values():
+            net_input += iface.get("rx_bytes", 0)
+            net_output += iface.get("tx_bytes", 0)
+
+        # Block I/O
+        blkio_stats = raw_stats.get("blkio_stats", {}).get(
+            "io_service_bytes_recursive", [])
+        block_input = sum(item["value"]
+                          for item in blkio_stats if item["op"] == "Read")
+        block_output = sum(item["value"]
+                           for item in blkio_stats if item["op"] == "Write")
+
+        stats = {
+            "cpu_percent": round(cpu_percent, 2),
+            "mem_usage": f"{mem_usage / (1024 ** 2):.2f} MB",
+            "mem_limit": f"{mem_limit / (1024 ** 2):.2f} MB",
+            "mem_percent": round(mem_percent, 2),
+            "net_input": f"{net_input / (1024 ** 2):.2f} MB",
+            "net_output": f"{net_output / (1024 ** 2):.2f} MB",
+            "block_input": f"{block_input / (1024 ** 2):.2f} MB",
+            "block_output": f"{block_output / (1024 ** 2):.2f} MB",
+        }
+
+        return render_template("stats.html", container=container, stats=stats)
+
     except Exception as e:
         flash(f"Error fetching stats: {str(e)}", "danger")
         return redirect(url_for('index'))
@@ -443,6 +488,53 @@ def api_stats():
             continue
 
     return jsonify(stats_data)
+
+
+@app.route('/api/stats/<container_id>')
+def api_container_stats(container_id):
+    try:
+        container = client.containers.get(container_id)
+        raw_stats = container.stats(stream=False)
+
+        cpu_delta = raw_stats["cpu_stats"]["cpu_usage"]["total_usage"] - \
+            raw_stats["precpu_stats"]["cpu_usage"]["total_usage"]
+        system_delta = raw_stats["cpu_stats"]["system_cpu_usage"] - \
+            raw_stats["precpu_stats"]["system_cpu_usage"]
+        cpu_percent = 0.0
+        if system_delta > 0.0 and cpu_delta > 0.0:
+            cpu_percent = (cpu_delta / system_delta) * \
+                len(raw_stats["cpu_stats"]["cpu_usage"]
+                    ["percpu_usage"]) * 100.0
+
+        mem_usage = raw_stats["memory_stats"]["usage"]
+        mem_limit = raw_stats["memory_stats"]["limit"]
+        mem_percent = (mem_usage / mem_limit) * 100.0
+
+        net_input = 0
+        net_output = 0
+        for iface in raw_stats.get("networks", {}).values():
+            net_input += iface.get("rx_bytes", 0)
+            net_output += iface.get("tx_bytes", 0)
+
+        blkio = raw_stats.get("blkio_stats", {}).get(
+            "io_service_bytes_recursive", [])
+        block_input = sum(item["value"]
+                          for item in blkio if item["op"] == "Read")
+        block_output = sum(item["value"]
+                           for item in blkio if item["op"] == "Write")
+
+        return {
+            "cpu_percent": round(cpu_percent, 2),
+            "mem_usage": f"{mem_usage / (1024 ** 2):.2f} MB",
+            "mem_limit": f"{mem_limit / (1024 ** 2):.2f} MB",
+            "mem_percent": round(mem_percent, 2),
+            "net_input": f"{net_input / (1024 ** 2):.2f} MB",
+            "net_output": f"{net_output / (1024 ** 2):.2f} MB",
+            "block_input": f"{block_input / (1024 ** 2):.2f} MB",
+            "block_output": f"{block_output / (1024 ** 2):.2f} MB",
+        }
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 
 if __name__ == '__main__':

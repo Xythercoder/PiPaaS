@@ -6,13 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Launch App | PiPaaS</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
     <header>
-        <h1>🚀 Launch Your Application</h1>
-        <p>Configure your public hostname and deploy your app to the cloud</p>
+        <div class="sub--header">
+            <div class="main-stuff">
+                <h1>🌐 PiPaaS</h1>
+                <p>Mini-Pi-PaaS Powered by Xythercoder</p>
+            </div>
+            <div>
+                <h1>🚀 Launch Your Application</h1>
+                <p>Configure your public hostname and deploy your app to the cloud</p>
+            </div>
+            <div>
+                {% if session.get('username') %}
+                <p>Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+                {% endif %}
+            </div>
+            <div>
+                <button type="button" onclick="toggleDarkMode()" class="dark-toggle">
+                    <span class="font--l">🌓</span></button>
+            </div>
+        </div>
     </header>
 
     <main>
@@ -43,6 +59,18 @@
     <footer>
         <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
     </footer>
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle( 'dark-mode' );
+            localStorage.setItem( 'theme', document.body.classList.contains( 'dark-mode' ) ? 'dark' : 'light' );
+        }
+
+        window.onload = () => {
+            if ( localStorage.getItem( 'theme' ) === 'dark' ) {
+                document.body.classList.add( 'dark-mode' );
+            }
+        };
+    </script>
 </body>
 
 </html>

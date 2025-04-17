@@ -1,40 +1,79 @@
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
   font-family: 'Segoe UI', sans-serif;
   text-decoration: none;
 }
 
 body {
+  margin: 0;
+  padding: 0;
+  width:100%;
+  height:auto;
   background-color: #f7f9fc;
   color: #333;
-  padding: 20px;
+  overflow: hidden;
 }
 
+body.dark-mode {
+  background-color: #121212;
+  color: #eee;
+}
+
+.dark-mode header,
+.dark-mode footer,
+.dark-mode .card,
+.dark-mode .card-header,
+.dark-mode .head--part,
+.dark-mode .chart-container,
+.dark-mode .form-control, 
+.dark-mode .form-control-file, 
+.dark-mode form {
+  background-color: #1e1e1e;
+  border-color: #333;
+  color: #eee;
+}
+
+.dark-toggle {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  font-size: 40px;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 65px;
+  cursor: pointer;
+}
+
+.font--l{
+  position: relative;
+  top: -16px;
+  left: -22px;
+}
+
+
 header {
-  text-align: center;
-  padding: 20px 0;
-  background-color: #222;
-  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--header-bg, #2f3542);
+  color: var(--header-color, #eee);
+  flex-wrap: wrap;
   border-radius: 10px;
-  margin-bottom: 30px;
+  box-sizing: border-box;
 }
 
 header h1 {
-  font-size: 2rem;
-  letter-spacing: 1px;
+  margin: 0;
+  font-size: 1.8rem;
 }
 
 header p {
-  margin-top: 5px;
-  font-size: 0.95rem;
-  color: #ccc;
+  margin: 0.2rem 0;
 }
 
 main {
-  max-width: 1100px;
-  margin: auto;
+  margin-top: 10px;
 }
 
 main h2 {
@@ -43,6 +82,14 @@ main h2 {
   font-size: 1.5rem;
   text-align: center;
 }
+
+.sub--header{
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 
 form {
   background-color: #fff;
@@ -92,15 +139,17 @@ form button:hover {
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  gap: 10px;
+  overflow: scroll;
 }
 
 .card {
+  margin-top: 10px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto auto;
   overflow: hidden;
   transition: transform 0.2s ease-in-out;
 }
@@ -110,8 +159,10 @@ form button:hover {
 }
 
 .card-header {
-  background-color: #222;
-  color: #fff;
+  grid-column-start: 1;
+  grid-column-end: 6;
+  background-color: #606b67;
+  color:#080000;
   padding: 15px;
 }
 
@@ -120,6 +171,7 @@ form button:hover {
 }
 
 .card-body {
+  grid-column-start: 3;
   padding: 15px;
   font-size: 0.95rem;
 }
@@ -183,6 +235,7 @@ footer {
   border-radius: 5px;
   font-weight: bold;
   display: inline-block;
+  position:relative;
 }
 
 .deploy-button:hover {
@@ -283,10 +336,6 @@ input[type="file"]:hover {
   color: white;
 }
 
-.card-header {
-  background-color: #343a40;
-  color: white;
-}
 
 .action-button {
     display: inline-block;
@@ -430,6 +479,13 @@ input[type="file"]:hover {
     font-weight: 600;
     letter-spacing: 0.5px;
 }
+
+.chart-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+}
+
 @media screen and (max-width: 600px) {
     .action-button {
         font-size: 0.8rem;

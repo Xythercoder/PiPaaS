@@ -1,71 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PiPaaS Dashboard</title>
-        <link rel="stylesheet"
-            href="{{ url_for('static', filename='style.css') }}" />
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    </head>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PiPaaS Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
 
-    <body>
-        <header>
-            <h1>🌐 PiPaaS</h1>
-            <p>Mini-Server Powered by Raspberry Pi</p>
-            {% if session.get('username') %}
-            <p>Logged in as {{ session['username'] }} | <a
-                    href="{{ url_for('logout') }}">Logout</a></p>
-            {% endif %}
-        </header>
+<body>
+    <header>
+        <div class="sub--header">
+            <div class="main-stuff">
+                <h1>🌐 PiPaaS</h1>
+                <p>Mini-Pi-PaaS Powered by Xythercoder</p>
+            </div>
+            <div></div>
+            <div></div>
+            <div>
+                {% if session.get('username') %}
+                <p>Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+                {% endif %}
+            </div>
+            <div>
+                <button type="button" onclick="toggleDarkMode()" class="dark-toggle">
+                    <span class="font--l">🌓</span></button>
+            </div>
+        </div>
+    </header>
 
-        <main>
-            <h2>Containers</h2>
-            <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
-            <br></br>
-            <div class="card">
-                <div class="card-header">
-                    <h3>{{ container.name }}</h3>
-                </div>
-                <div class="card-body">
-                    <p><strong>ID:</strong> {{ container.id }}</p>
-                    <p><strong>Status:</strong>
-                        <span class="status {{ container.status }}">
-                            {{ container.status }}
-                        </span>
-                    </p>
-                    <p><strong>CPU Usage:</strong> {{ container.cpu_percent }}%</p>
-                    <p><strong>Memory Usage:</strong> {{ container.mem_usage }} / {{ container.mem_limit }}
-                        ({{ container.mem_percent }}%)</p>
-                    <p><strong>Network Input:</strong> {{ container.net_input }}</p>
-                    <p><strong>Network Output:</strong> {{ container.net_output }}</p>
-                    <p><strong>Disk I/O:</strong> {{ container.block_input }} / {{ container.block_output }}</p>
-                </div>
-                <div class="card-footer">
-                    <a class="action-button view-button" href="/logs/{{ container.id }}">Logs</a>
-                    <button class="action-button" onclick="changeContainerState('{{ container.name }}', 'stop')">Stop</button>
-                    <button class="action-button" onclick="changeContainerState('{{ container.name }}', 'restart')">Restart</button>
+    <main>
+        <h2>Containers</h2>
+        <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
+        <br></br>
+        <br></br>
+        <div class="chart-toggle">
+            <button onclick="toggleChart('cpuChart')">CPU</button>
+            <button onclick="toggleChart('memChart')">Memory</button>
+            <button onclick="toggleChart('diskChart')">Disk</button>
+            <button onclick="toggleChart('netChart')">Network</button>
+        </div>
+        <div class="chart-container">
+            <h4>📈 CPU Usage</h4>
+            <canvas id="cpuChart" height="100"></canvas>
+
+            <h4>📉 Memory Usage</h4>
+            <canvas id="memChart" height="100"></canvas>
+
+            <h4>💾 Disk I/O</h4>
+            <canvas id="diskChart" height="100"></canvas>
+
+            <h4>🌐 Network I/O</h4>
+            <canvas id="netChart" height="100"></canvas>
+        </div>
+        <br></br>
+        <br></br>
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ container.name }}</h3> <!-- Static -->
+            </div>
+            <div class="card-body">
+                <p><strong>ID:</strong> {{ container.id }}</p> <!-- Static -->
+                <p><strong>Status:</strong>
+                    <span class="status {{ container.status }}">{{ container.status }}</span>
+                </p>
+
+                <div id="live-stats">
+                    <p><strong>CPU Usage:</strong> <span id="cpu"></span></p>
+                    <p><strong>Memory Usage:</strong> <span id="mem"></span></p>
+                    <p><strong>Network Input:</strong> <span id="net-in"></span></p>
+                    <p><strong>Network Output:</strong> <span id="net-out"></span></p>
+                    <p><strong>Disk I/O:</strong> <span id="block-io"></span></p>
                 </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <footer>
-            <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
-        </footer>
+    <footer>
+        <p>&copy; 2025 PiPaaS Dashboard | Powered by Xythercoder</p>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const MAX_POINTS = 30;
+        const cpuData = {
+            labels: [],
+            datasets: [ {
+                label: 'CPU %',
+                data: [],
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: true,
+                tension: 0.3
+            } ]
+        };
 
-        <script>
-        function changeContainerState( containerName, action ) {
-                $.post( `/api/container/${ action }`, { name: containerName }, function ( response ) {
-                    if ( response.success ) {
-                        alert( `Container ${ action }ed successfully!` );
-                        location.reload();
-                    } else {
-                        alert( 'Failed to change container state.' );
+        const memData = {
+            labels: [],
+            datasets: [ {
+                label: 'Memory %',
+                data: [],
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                fill: true,
+                tension: 0.3
+            } ]
+        };
+
+        const diskData = {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Block Input (MB)',
+                    data: [],
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Block Output (MB)',
+                    data: [],
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        };
+
+        const netData = {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Net Input (MB)',
+                    data: [],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Net Output (MB)',
+                    data: [],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        };
+
+
+        const cpuChart = new Chart( document.getElementById( 'cpuChart' ), {
+            type: 'line',
+            data: cpuData,
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function ( ctx ) {
+                                return `CPU: ${ ctx.parsed.y.toFixed( 2 ) }%`;
+                            }
+                        }
                     }
-                } );
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
             }
-        </script>
-    </body>
+        } );
+
+        const memChart = new Chart( document.getElementById( 'memChart' ), {
+            type: 'line',
+            data: memData,
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function ( ctx ) {
+                                return `Memory: ${ ctx.parsed.y.toFixed( 2 ) }%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        } );
+
+        const diskChart = new Chart( document.getElementById( 'diskChart' ), {
+            type: 'line',
+            data: diskData,
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function ( ctx ) {
+                                return `${ ctx.dataset.label }: ${ ctx.parsed.y.toFixed( 2 ) } MB`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        } );
+
+        const netChart = new Chart( document.getElementById( 'netChart' ), {
+            type: 'line',
+            data: netData,
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function ( ctx ) {
+                                return `${ ctx.dataset.label }: ${ ctx.parsed.y.toFixed( 2 ) } MB`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        } );
+
+        function refreshStats() {
+            $.getJSON( '/api/stats/{{ container.id }}', function ( data ) {
+                $( '#cpu' ).text( data.cpu_percent + '%' );
+                $( '#mem' ).text( data.mem_usage + ' / ' + data.mem_limit + ' (' + data.mem_percent + '%)' );
+                $( '#net-in' ).text( data.net_input );
+                $( '#net-out' ).text( data.net_output );
+                $( '#block-io' ).text( data.block_input + ' / ' + data.block_output );
+
+                const timeLabel = new Date().toLocaleTimeString();
+                const blockInMB = parseFloat( data.block_input ) / ( 1024 * 1024 );
+                const blockOutMB = parseFloat( data.block_output ) / ( 1024 * 1024 );
+                const netInMB = parseFloat( data.net_input ) / ( 1024 * 1024 );
+                const netOutMB = parseFloat( data.net_output ) / ( 1024 * 1024 );
+
+
+                cpuData.labels.push( timeLabel );
+                memData.labels.push( timeLabel );
+                diskData.labels.push( timeLabel );
+                diskData.datasets[ 0 ].data.push( blockInMB );
+                diskData.datasets[ 1 ].data.push( blockOutMB );
+                cpuData.datasets[ 0 ].data.push( data.cpu_percent );
+                memData.datasets[ 0 ].data.push( data.mem_percent );
+                netData.labels.push( timeLabel );
+                netData.datasets[ 0 ].data.push( netInMB );
+                netData.datasets[ 1 ].data.push( netOutMB );
+
+
+                if ( cpuData.labels.length > MAX_POINTS ) {
+                    cpuData.labels.shift();
+                    cpuData.datasets[ 0 ].data.shift();
+                    memData.labels.shift();
+                    memData.datasets[ 0 ].data.shift();
+                }
+
+                if ( diskData.labels.length > MAX_POINTS ) {
+                    diskData.labels.shift();
+                    diskData.datasets[ 0 ].data.shift();
+                    diskData.datasets[ 1 ].data.shift();
+                    netData.labels.shift();
+                    netData.datasets[ 0 ].data.shift();
+                    netData.datasets[ 1 ].data.shift();
+                }
+
+                cpuChart.update();
+                memChart.update();
+                diskChart.update();
+                netChart.update();
+            } );
+        }
+
+        setInterval( refreshStats, 3000 );
+        $( document ).ready( refreshStats );
+    </script>
+    <script>
+        function refreshStats() {
+            $.getJSON( '/api/stats/{{ container.id }}', function ( data ) {
+                $( '#cpu' ).text( data.cpu_percent + '%' );
+                $( '#mem' ).text( data.mem_usage + ' / ' + data.mem_limit + ' (' + data.mem_percent + '%)' );
+                $( '#net-in' ).text( data.net_input );
+                $( '#net-out' ).text( data.net_output );
+                $( '#block-io' ).text( data.block_input + ' / ' + data.block_output );
+            } );
+        }
+
+        // Call every 3 seconds
+        setInterval( refreshStats, 3000 );
+        $( document ).ready( refreshStats );
+
+        function toggleChart( id ) {
+            const charts = [ 'cpuChart', 'memChart', 'diskChart', 'netChart' ];
+            charts.forEach( cid => {
+                document.getElementById( cid ).style.display = cid === id ? 'block' : 'none';
+            } );
+        }
+        toggleChart( 'cpuChart' );
+    </script>
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle( 'dark-mode' );
+            localStorage.setItem( 'theme', document.body.classList.contains( 'dark-mode' ) ? 'dark' : 'light' );
+        }
+
+        window.onload = () => {
+            if ( localStorage.getItem( 'theme' ) === 'dark' ) {
+                document.body.classList.add( 'dark-mode' );
+            }
+        };
+    </script>
+</body>
 
 </html>
