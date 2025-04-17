@@ -32,7 +32,7 @@
     </header>
 
     <main>
-        <a class="action-button view-button" href="{{ url_for('compose_editor') }}">⬅ Back to Dashboard</a>
+        <a class="btn action-button view-button" href="{{ url_for('compose_editor') }}">⬅ Back to Dashboard</a>
         <div class="card">
             <div class="card-header">
                 <h3>Step 3: Cloudflare Tunnel Configuration</h3>
@@ -50,7 +50,7 @@
                             value="{{ docker_port or '' }}" required>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Launch App</button>
+                    <button type="submit" class="btn btn-success">Launch App</button>
                 </form>
             </div>
         </div>

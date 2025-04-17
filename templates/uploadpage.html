@@ -25,14 +25,14 @@
                 {% endif %}
             </div>
             <div>
-                <button type="button" onclick="toggleDarkMode()" class="dark-toggle">
+                <button type="button" onclick="toggleDarkMode()" class="btn dark-toggle">
                     <span class="font--l">🌓</span></button>
             </div>
         </div>
     </header>
     
     <main>
-        <a class="action-button view-button" href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
+        <a class="btn action-button view-button" href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
         <div class="card">
             <div class="card-header">
                 <h3 class="head--part">Step 1: Upload or Clone Project</h3>
@@ -64,7 +64,7 @@
                             placeholder="https://github.com/username/repo">
                     </div>
 
-                    <button type="submit" class="deploy-button">Upload & Edit</button>
+                    <button type="submit" class="btn deploy-button">Upload & Edit</button>
                 </form>
             </div>
         </div>

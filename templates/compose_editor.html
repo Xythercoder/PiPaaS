@@ -25,14 +25,14 @@
                 {% endif %}
             </div>
             <div>
-                <button type="button" onclick="toggleDarkMode()" class="dark-toggle">
+                <button type="button" onclick="toggleDarkMode()" class="btn dark-toggle">
                     <span class="font--l">🌓</span></button>
             </div>
         </div>
     </header>
 
     <main>
-        <a class="action-button view-button" href="{{ url_for('upload_app') }}">⬅ Back to Dashboard</a>
+        <a class="btn action-button view-button" href="{{ url_for('upload_app') }}">⬅ Back to Dashboard</a>
         <div class="card">
             <div class="card-header">
                 <h3 class="head--part">Step 2: Validate or Modify Compose</h3>
@@ -60,7 +60,7 @@
                             accept=".yml,.yaml">
                     </div>
 
-                    <button type="submit" class="deploy-button">Proceed to Deploy 🚀</button>
+                    <button type="submit" class="btn deploy-button">Proceed to Deploy 🚀</button>
                 </form>
             </div>
         </div>

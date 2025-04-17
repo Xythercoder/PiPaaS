@@ -21,7 +21,7 @@
                 {% endif %}
             </div>
             <div>
-                <button type="button" onclick="toggleDarkMode()" class="dark-toggle">
+                <button type="button" onclick="toggleDarkMode()" class="btn dark-toggle">
                     <span class="font--l">🌓</span></button>
             </div>
         </div>
@@ -29,7 +29,7 @@
 
     <main>
         <div class=" div--main">
-            <a href="{{ url_for('upload_app') }}" class="deploy-button">+ New App</a>
+            <a href="{{ url_for('upload_app') }}" class="btn deploy-button">+ New App</a>
         </div>
         <h2>Active Containers</h2>
 
@@ -54,26 +54,26 @@
                     <p><strong>Image:</strong> {{ container.image.tags[0] if container.image.tags else 'None' }}</p>
                 </div>
                 <div class="card-footer">
-                    <a class="action-button view-button" href="/logs/{{ container.id }}">Logs</a>
-                    <a class="action-button view-button" href="/stats/{{ container.id }}">Stats</a>
+                    <a class="btn action-button view-button" href="/logs/{{ container.id }}">Logs</a>
+                    <a class="btn action-button view-button" href="/stats/{{ container.id }}">Stats</a>
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
                         <input type="hidden" name="action" value="start">
-                        <button type="submit" class="action-button"
+                        <button type="submit" class="btn action-button"
                             {% if 'running' in container.status %}disabled{% endif %}>Start</button>
                     </form>
 
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
                         <input type="hidden" name="action" value="stop">
-                        <button type="submit" class="action-button"
+                        <button type="submit" class="btn action-button"
                             {% if 'exited' in container.status %}disabled{% endif %}>Stop</button>
                     </form>
 
                     <form method="POST" action="/container/action">
                         <input type="hidden" name="container_id" value="{{ container.id }}">
                         <input type="hidden" name="action" value="restart">
-                        <button type="submit" class="action-button"
+                        <button type="submit" class="btn action-button"
                             {% if 'running' not in container.status %}disabled{% endif %}>Restart</button>
                     </form>
                 </div>
