@@ -57,7 +57,7 @@ body.dark-mode .prer {
   height: 40px;
   font-size: 40px;
   background-color: #eeeeee00;
-  border: 1px solid #ccc;
+  border: none;
   border-radius: 65px;
   cursor: pointer;
 }
